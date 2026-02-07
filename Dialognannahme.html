@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agebotsannameprotokoll – PS Oldtimerservice</title>
+    <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#111827" />
+<link href="./tailwind.min.css" rel="stylesheet" />
+  <script src="./jspdf.umd.min.js"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #annahmeForm, #annahmeForm * { visibility: visible; }
+      #annahmeForm { position: absolute; left: 0; top: 0; }
+      button { display: none !important; }
+    }
+    .preview-img {
+      max-height: 100px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white p-6">
+  <div class="max-w-5xl mx-auto bg-gray-800 p-10 rounded-2xl shadow-xl">
+    <div class="flex justify-between items-center border-b border-gray-700 pb-4 mb-6">
+      <img src="data:image/jpeg;base64,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" style="height: 80px; width: auto;" alt="Logo" />
+      <div class="text-right text-sm text-gray-300">
+        <strong>PS Oldtimerservice</strong><br />
+        Im Steingerüst 21/3, 76437 Rastatt<br />
+        Tel: 0176 64795271<br />
+        www.ps-oldtimerservice.de
+      </div>
+    </div>
+
+    <h1 class="text-3xl font-bold text-white mb-6">Annameprotokoll</h1>
+
+    <form id="annahmeForm" class="space-y-6 text-sm">
+
+
+      <!-- Kundendaten -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-100 border-b border-gray-600 pb-1 mb-3">Kundendaten</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="vorname" class="block font-medium text-gray-300">Vorname</label>
+            <input id="vorname" type="text" name="vorname" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label for="nachname" class="block font-medium text-gray-300">Nachname</label>
+            <input id="nachname" type="text" name="nachname" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label for="adresse" class="block font-medium text-gray-300">Adresse</label>
+            <input id="adresse" type="text" name="adresse" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
+          </div>
+          <div>
+            <label for="plz_ort" class="block font-medium text-gray-300">PLZ / Ort</label>
+            <input id="plz_ort" type="text" name="plz_ort" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
+          </div>
+          <div>
+            <label for="telefon" class="block font-medium text-gray-300">Telefonnummer</label>
+            <input id="telefon" type="tel" name="telefon" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label for="email" class="block font-medium text-gray-300">E-Mail</label>
+            <input id="email" type="email" name="email" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
+          </div>
+          <div>
+            <label for="datum" class="block font-medium text-gray-300">Datum der Annahme</label>
+            <input id="datum" type="date" name="datum" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+        </div>
+      </div>
+
+      <!-- Fahrzeugdaten -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-100 border-b border-gray-600 pb-1 mb-3">Fahrzeugdaten</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class="block font-medium text-gray-300">Marke</label>
+            <input type="text" name="fahrzeug_marke" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label class="block font-medium text-gray-300">Modell</label>
+            <input type="text" name="fahrzeug_modell" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label class="block font-medium text-gray-300">Baujahr</label>
+            <input type="text" name="fahrzeug_baujahr" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
+          </div>
+          <div>
+            <label class="block font-medium text-gray-300">Kennzeichen</label>
+            <input type="text" name="kennzeichen" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
+          </div>
+          <div>
+            <label class="block font-medium text-gray-300">Fahrzeugtyp</label>
+            <select name="fahrzeug_typ" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+              <option value="">Bitte wählen</option>
+              <option value="Sonderfahrzeug">Sonderfahrzeug</option>
+              <option value="Historyfahrzeug">Historyfahrzeug</option>
+	      <option value="Sonderfahrzeug">PKW</option>
+	      <option value="Sonderfahrzeug">Transporter</option>
+              <option value="Sonderfahrzeug">LKW</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leistungsübersicht -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-100 border-b border-gray-600 pb-1 mb-3">Leistungsübersicht</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Karosseriearbeiten" class="mr-2" /> Karosseriearbeiten</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Lackierung" class="mr-2" /> Lackierung</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Unterbodenversiegelung" class="mr-2" /> Unterbodenversiegelung</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Hohlraumversiegelung" class="mr-2" /> Hohlraumversiegelung</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="TÜV-Abnahme" class="mr-2" /> TÜV-Abnahme</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="H-Gutachten" class="mr-2" /> H-Gutachten</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Trockeneisreinigung" class="mr-2" /> Trockeneisreinigung</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Motorrevision" class="mr-2" /> Motorrevision</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Fahrwerksarbeiten" class="mr-2" /> Fahrwerksarbeiten</label>
+          <label class="flex items-center"><input type="checkbox" name="leistungen" value="Wertgutachten" class="mr-2" /> Wertgutachten</label>
+        </div>
+      </div>
+
+      <!-- Hinweise -->
+      <div>
+        <label class="block font-medium text-gray-300">Zusätzliche Hinweise oder Wünsche</label>
+        <textarea name="hinweise" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" rows="4"></textarea>
+      </div>
+
+      <!-- Bilder -->
+      <div>
+        <label class="block font-medium text-gray-300">Bild-Upload (z. B. Fahrzeugschein, Schäden)</label>
+        <input type="file" name="bilder" id="bilderUpload" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" accept="image/*" multiple />
+        <div id="bildVorschau" class="flex gap-4 flex-wrap mt-4"></div>
+      </div>
+
+      <div class="border-t border-gray-700 pt-6">
+        <h2 class="text-lg font-semibold text-gray-100 mb-4">Unterschriften (Pflicht)</h2>
+        <p class="text-sm text-gray-400 mb-4">Bitte unterschreiben Sie direkt auf dem Tablet. Beide Unterschriften sind erforderlich, bevor das PDF erstellt werden kann.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-gray-300 mb-2">Unterschrift Kunde</p>
+            <canvas id="signKunde" width="500" height="180" class="w-full bg-white rounded border border-gray-500"></canvas>
+            <button type="button" onclick="clearSignature('signKunde')" class="mt-2 text-xs text-red-400 hover:text-red-300">Unterschrift löschen</button>
+          </div>
+
+          <div>
+            <p class="text-gray-300 mb-2">Unterschrift Werkstatt</p>
+            <canvas id="signWerkstatt" width="500" height="180" class="w-full bg-white rounded border border-gray-500"></canvas>
+            <button type="button" onclick="clearSignature('signWerkstatt')" class="mt-2 text-xs text-red-400 hover:text-red-300">Unterschrift löschen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-700 pt-4 text-sm text-gray-400">
+        <p>Hinweis: Dieses Protokoll wird mit grafischer Unterschrift erstellt.</p>
+      </div>
+<div class="flex flex-wrap gap-4 justify-end pt-6">
+        <button type="button" onclick="generatePDF(true)" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">PDF Vorschau & Drucken</button>
+        <button type="button" onclick="generatePDF(false)" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600">PDF speichern</button>
+      </div>
+    </form>
+  </div>
+
+
+<script>
+  const logoBase64 = 'data:image/jpeg;base64,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'
+  window.jsPDF = window.jspdf.jsPDF;
+
+  document.getElementById('bilderUpload').addEventListener('change', (e) => {
+    const preview = document.getElementById('bildVorschau');
+    preview.innerHTML = '';
+    [...e.target.files].forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = document.createElement('img');
+        img.src = ev.target.result;
+        img.className = 'preview-img border border-gray-600 p-1 rounded shadow';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  // ===== Unterschrift (Canvas) =====
+  function initSignature(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+
+    let drawing = false;
+
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches ? e.touches[0] : e;
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    };
+
+    const start = (e) => {
+      drawing = true;
+      const p = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    };
+
+    const move = (e) => {
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    };
+
+    const end = () => { drawing = false; };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); move(e); }, { passive: false });
+    canvas.addEventListener('touchend', end);
+  }
+
+  function clearSignature(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function isCanvasBlank(canvas) {
+    if (!canvas) return true;
+    const ctx = canvas.getContext('2d');
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Check if any pixel has been drawn (alpha > 0 and not white background-only)
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+      if (a !== 0) {
+        // If not pure white, assume drawing exists
+        if (!(r === 255 && g === 255 && b === 255)) return false;
+      }
+    }
+    return true;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initSignature('signKunde');
+    initSignature('signWerkstatt');
+  });
+
+function generatePDF(showPreview = false) {
+  // Pflicht: beide Unterschriften müssen vorhanden sein
+  const kundeCanvas = document.getElementById('signKunde');
+  const werkCanvas = document.getElementById('signWerkstatt');
+  if (isCanvasBlank(kundeCanvas) || isCanvasBlank(werkCanvas)) {
+    alert('Bitte beide Unterschriften (Kunde & Werkstatt) ausfüllen, bevor das PDF erstellt wird.');
+    // zum Unterschriftenbereich scrollen
+    const target = document.getElementById('signKunde');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const signKundeData = kundeCanvas.toDataURL('image/png');
+  const signWerkstattData = werkCanvas.toDataURL('image/png');
+
+  const form = document.getElementById('annahmeForm');
+  const formData = new FormData(form);
+  const vorname = formData.get('vorname') || '';
+  const nachname = formData.get('nachname') || '';
+  const kundenname = `${vorname} ${nachname}`.trim() || 'Kunde';
+  const datum = formData.get('datum') || new Date().toISOString().slice(0, 10);
+  const filename = `Angebotsannameprotokoll_${kundenname.replace(/\s+/g, '_')}_${datum.replace(/-/g, '')}.pdf`;
+  const doc = new jsPDF();
+
+  const files = document.getElementById('bilderUpload').files;
+  const imgPromises = [...files].map(file => {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = ev => resolve({ name: file.name, dataUrl: ev.target.result });
+      reader.readAsDataURL(file);
+    });
+  });
+
+  const buildPage = async (exemplarTyp = '') => {
+    let y = 10;
+    const startPage = doc.getNumberOfPages();
+
+    const addHeader = () => {
+      doc.addImage(logoBase64, 'PNG', 160, y, 40, 45); y += 5;
+      doc.setFontSize(14);
+      doc.text('Angebotsannameprotokoll – PS Oldtimerservice', 10, y); y += 8;
+      doc.setFontSize(11);
+      if (exemplarTyp) {
+        doc.setFont(undefined, 'bold');
+        doc.text(`Exemplar für die ${exemplarTyp}`, 10, y); y += 8;
+        doc.setFont(undefined, 'normal');
+      }
+      doc.setFontSize(9);
+      doc.text('PS Oldtimerservice', 10, y); y += 5;
+      doc.text('Im Steingerüst 21/3, 76437 Rastatt', 10, y); y += 5;
+      doc.text('Tel: 0176 64795271 – www.ps-oldtimerservice.de', 10, y); y += 10;
+    };
+
+    const newPage = () => {
+      doc.addPage();
+      y = 10;
+      addHeader();
+    };
+
+    addHeader();
+
+    const block = (title, items) => {
+      y += 10; // Abstand vor jedem Block
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(title, 10, y); y += 7;
+      doc.setFont(undefined, 'normal');
+      items.forEach(([label, value]) => {
+        if (value) {
+          if (y > 270) { newPage(); }
+          doc.setFontSize(10);
+          doc.text(`${label}: ${value}`, 10, y);
+          y += 6;
+        }
+      });
+    };
+
+    block('Kundendaten', [
+      ['Vorname', vorname],
+      ['Nachname', nachname],
+      ['Adresse', formData.get('adresse')],
+      ['PLZ / Ort', formData.get('plz_ort')],
+      ['Telefon', formData.get('telefon')],
+      ['E-Mail', formData.get('email')],
+      ['Datum', datum]
+    ]);
+
+    block('Fahrzeugdaten', [
+      ['Marke', formData.get('fahrzeug_marke')],
+      ['Modell', formData.get('fahrzeug_modell')],
+      ['Baujahr', formData.get('fahrzeug_baujahr')],
+      ['Kennzeichen', formData.get('kennzeichen')],
+      ['Fahrzeugtyp', formData.get('fahrzeug_typ')]
+    ]);
+
+    const leistungen = formData.getAll('leistungen');
+    if (leistungen.length > 0) {
+      y += 10;
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('Leistungsübersicht', 10, y); y += 7;
+      doc.setFont(undefined, 'normal');
+      leistungen.forEach(item => {
+        if (y > 270) { newPage(); }
+        doc.setFontSize(10);
+        doc.text(`• ${item}`, 15, y); y += 5;
+      });
+    }
+
+    y += 10;
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Zusätzliche Hinweise', 10, y); y += 6;
+    doc.setFont(undefined, 'normal');
+    const hinweise = formData.get('hinweise') || '-';
+    const hinweisText = doc.splitTextToSize(hinweise, 180);
+    if (y + hinweisText.length * 6 > 280) { newPage(); }
+    doc.setFontSize(10);
+    doc.text(hinweisText, 10, y);
+    y += hinweisText.length * 6 + 10;
+
+
+    if (imgPromises.length > 0) {
+      const images = await Promise.all(imgPromises);
+      doc.setFontSize(12);
+      doc.text('Bilder:', 10, y); y += 6;
+      for (const img of images) {
+        if (y + 45 > 280) { newPage(); }
+        doc.addImage(img.dataUrl, 'JPEG', 10, y, 50, 38);
+        doc.setFontSize(8);
+        doc.text(img.name, 65, y + 5);
+        y += 45;
+      }
+    }
+
+    const rechtshinweis = 'Hinweis: Das vorliegende Annameprotokoll stellt keine rechtsverbindliche Auftragserteilung dar, sondern dient ausschließlich der strukturierten Vorbesprechung der gewünschten Leistungen. Auf Grundlage dieser Vorbesprechung wird PS Oldtimerservice ein individuelles, unverbindliches Angebot erstellen und dem Kunden gesondert zukommen lassen. Erst mit Annahme dieses Angebots durch den Kunden kommt ein rechtswirksames Vertragsverhältnis zustande.Für die Erstellung des schiftlichen Angebots wird eine Pauschale i.H.v. 178,50€ berechnet, welche bei der Auftragserteilung vollständig verrechnet wird. Änderungen können bei Übergabe des Fahrzeugs besprochen werden.';
+    const wrappedText = doc.splitTextToSize(rechtshinweis, 180);
+    if (y + wrappedText.length * 5 > 280) { newPage(); }
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(wrappedText, 10, y);
+    y += wrappedText.length * 5 + 10;
+
+    doc.setTextColor(0);
+
+    // Unterschriften in PDF einbetten
+    const sigY = y;
+    doc.text('Kunde', 20, sigY + 5);
+    doc.text('Werkstatt', 120, sigY + 5);
+
+    // Signaturbilder oberhalb der Linien
+    doc.addImage(signKundeData, 'PNG', 20, sigY - 22, 70, 20);
+    doc.addImage(signWerkstattData, 'PNG', 120, sigY - 22, 70, 20);
+
+    // Linien unter den Signaturen
+    doc.line(20, sigY, 90, sigY);
+    doc.line(120, sigY, 190, sigY);
+
+    // Lokale Seitenzahlen (pro Exemplar)
+    const endPage = doc.getNumberOfPages();
+    let localPage = 1;
+    for (let i = startPage; i <= endPage; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Seite ${localPage} von ${endPage - startPage + 1}`, 170, 290);
+      localPage++;
+    }
+  };
+
+  (async () => {
+    await buildPage('Werkstatt');
+    doc.addPage();
+    await buildPage('Kundschaft');
+
+    if (showPreview) {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(filename);
+    }
+  })();
+}
+</script>
+
+<script>
+  // PWA Offline: Service Worker registrieren
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+    });
+  }
+</script>
+</body>
+</html>
