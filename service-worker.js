@@ -1,7 +1,7 @@
 const CACHE_NAME = "ps-annahme-v1";
 const FILES = [
   "./",
-  "./Dialognannahme.html",
+  "./index.html",
   "./manifest.json",
   "./tailwind.min.css",
   "./jspdf.umd.min.js",
