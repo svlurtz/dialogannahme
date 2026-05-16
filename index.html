@@ -368,46 +368,46 @@ function generatePDF(showPreview = false) {
     const startPage = doc.getNumberOfPages();
 
     const addHeader = () => {
-      // Dezente Kopfzeile mit Markenfarbe
+      // Professioneller Kopfbereich mit klar getrennten Spalten
       doc.setFillColor(...colors.green);
-      doc.rect(0, 0, page.w, 8, 'F');
+      doc.rect(0, 0, page.w, 7, 'F');
 
-      try {
-        doc.addImage(logoBase64, 'PNG', 158, 14, 34, 34);
-      } catch (e) {
-        // Falls ein Browser das Logoformat nicht akzeptiert, wird das PDF trotzdem erstellt.
-      }
-
+      // Linke Spalte: Dokumenttitel
       doc.setTextColor(...colors.text);
       doc.setFont(undefined, 'bold');
-      doc.setFontSize(18);
-      doc.text('Angebotsannahmeprotokoll', page.margin, y);
-      y += 8;
+      doc.setFontSize(17);
+      doc.text('Angebotsannahmeprotokoll', page.margin, 22);
 
       doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
+      doc.setFontSize(9.5);
       doc.setTextColor(...colors.medium);
-      doc.text('PS Oldtimerservice · Restauration & Karosserie', page.margin, y);
-      y += 7;
+      doc.text('PS Oldtimerservice · Restauration & Karosserie', page.margin, 30);
 
       if (exemplarTyp) {
         doc.setFillColor(...colors.light);
         doc.setDrawColor(...colors.line);
-        doc.roundedRect(page.margin, y - 4, 58, 8, 2, 2, 'FD');
+        doc.roundedRect(page.margin, 37, 58, 9, 2, 2, 'FD');
         doc.setFont(undefined, 'bold');
         doc.setFontSize(9);
         doc.setTextColor(...colors.green);
-        doc.text(`Exemplar: ${exemplarTyp}`, page.margin + 3, y + 1.5);
+        doc.text(`Exemplar: ${exemplarTyp}`, page.margin + 4, 43);
         doc.setFont(undefined, 'normal');
       }
 
-      doc.setFontSize(8.5);
+      // Rechte Spalte: Kontaktdaten und Logo – ohne Überschneidung mit dem Titel
+      doc.setFontSize(8);
       doc.setTextColor(...colors.medium);
-      doc.text('Im Steingerüst 21/3 · 76437 Rastatt', 105, 22, { align: 'right' });
-      doc.text('Tel: 0176 64795271', 105, 27, { align: 'right' });
-      doc.text('www.ps-oldtimerservice.de', 105, 32, { align: 'right' });
+      doc.text('Im Steingerüst 21/3 · 76437 Rastatt', 118, 19);
+      doc.text('Tel: 0176 64795271', 118, 24);
+      doc.text('www.ps-oldtimerservice.de', 118, 29);
 
-      y = 52;
+      try {
+        doc.addImage(logoBase64, 'PNG', 166, 13, 28, 28);
+      } catch (e) {
+        // Falls ein Browser das Logoformat nicht akzeptiert, wird das PDF trotzdem erstellt.
+      }
+
+      y = 56;
       doc.setDrawColor(...colors.line);
       doc.line(page.margin, y, page.w - page.margin, y);
       y += 8;
