@@ -52,6 +52,10 @@
             <label for="nachname" class="block font-medium text-gray-300">Nachname</label>
             <input id="nachname" type="text" name="nachname" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" required />
           </div>
+          <div class="md:col-span-2">
+            <label for="firma" class="block font-medium text-gray-300">Firma</label>
+            <input id="firma" type="text" name="firma" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
+          </div>
           <div>
             <label for="adresse" class="block font-medium text-gray-300">Adresse</label>
             <input id="adresse" type="text" name="adresse" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white" />
@@ -127,6 +131,41 @@
           <label class="flex items-center"><input type="checkbox" name="leistungen" value="Motorrevision" class="mr-2" /> Motorrevision</label>
           <label class="flex items-center"><input type="checkbox" name="leistungen" value="Fahrwerksarbeiten" class="mr-2" /> Fahrwerksarbeiten</label>
           <label class="flex items-center"><input type="checkbox" name="leistungen" value="Wertgutachten" class="mr-2" /> Wertgutachten</label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div>
+            <label for="modell_auswahl" class="block font-medium text-gray-300">Modell</label>
+            <select id="modell_auswahl" name="modell_auswahl" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+              <option value="">Bitte wählen</option>
+              <option value="T1">T1</option>
+              <option value="T2">T2</option>
+              <option value="T3">T3</option>
+              <option value="T4">T4</option>
+              <option value="T5">T5</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-gray-300">Karosserieteile</label>
+            <details class="relative bg-gray-700 border border-gray-600 rounded text-white">
+              <summary class="cursor-pointer list-none p-2 select-none">Karosserieteile auswählen</summary>
+              <div class="absolute z-20 mt-1 w-full bg-gray-700 border border-gray-600 rounded shadow-xl p-3 space-y-2">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" name="karosserieteile" value="Frontblech Windabweiser oben" />
+                  <span>Frontblech Windabweiser oben</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" name="karosserieteile" value="Seitenblech links" />
+                  <span>Seitenblech links</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" name="karosserieteile" value="Seitenblech rechts" />
+                  <span>Seitenblech rechts</span>
+                </label>
+              </div>
+            </details>
+            <p class="text-xs text-gray-400 mt-1">Es können mehrere defekte Karosserieteile angehakt werden.</p>
+          </div>
         </div>
       </div>
 
@@ -283,6 +322,7 @@ function generatePDF(showPreview = false) {
   const vorname = formData.get('vorname') || '';
   const nachname = formData.get('nachname') || '';
   const kundenname = `${vorname} ${nachname}`.trim() || 'Kunde';
+  const firma = (formData.get('firma') || '').trim();
   const datum = formData.get('datum') || new Date().toISOString().slice(0, 10);
   const filename = `Angebotsannahmeprotokoll_${kundenname.replace(/\s+/g, '_')}_${datum.replace(/-/g, '')}.pdf`;
   const doc = new jsPDF();
@@ -343,6 +383,7 @@ function generatePDF(showPreview = false) {
     block('Kundendaten', [
       ['Vorname', vorname],
       ['Nachname', nachname],
+      ['Firma', firma],
       ['Adresse', formData.get('adresse')],
       ['PLZ / Ort', formData.get('plz_ort')],
       ['Telefon', formData.get('telefon')],
@@ -360,7 +401,9 @@ function generatePDF(showPreview = false) {
     ]);
 
     const leistungen = formData.getAll('leistungen');
-    if (leistungen.length > 0) {
+    const modellAuswahl = formData.get('modell_auswahl');
+    const karosserieteile = formData.getAll('karosserieteile').filter(Boolean);
+    if (leistungen.length > 0 || modellAuswahl || karosserieteile.length > 0) {
       y += 10;
       doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
@@ -371,6 +414,18 @@ function generatePDF(showPreview = false) {
         doc.setFontSize(10);
         doc.text(`• ${item}`, 15, y); y += 5;
       });
+      if (modellAuswahl) {
+        if (y > 270) { newPage(); }
+        doc.setFontSize(10);
+        doc.text(`Modell: ${modellAuswahl}`, 10, y); y += 6;
+      }
+      if (karosserieteile.length > 0) {
+        if (y > 270) { newPage(); }
+        doc.setFontSize(10);
+        const karosserieteileText = doc.splitTextToSize(`Karosserieteile: ${karosserieteile.join(', ')}`, 180);
+        doc.text(karosserieteileText, 10, y);
+        y += karosserieteileText.length * 6;
+      }
     }
 
     y += 10;
