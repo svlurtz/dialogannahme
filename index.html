@@ -309,23 +309,34 @@ function generatePDF(showPreview = false) {
   const werkCanvas = document.getElementById('signWerkstatt');
   if (isCanvasBlank(kundeCanvas) || isCanvasBlank(werkCanvas)) {
     alert('Bitte beide Unterschriften (Kunde & Werkstatt) ausfüllen, bevor das PDF erstellt wird.');
-    // zum Unterschriftenbereich scrollen
     const target = document.getElementById('signKunde');
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
+
   const signKundeData = kundeCanvas.toDataURL('image/png');
   const signWerkstattData = werkCanvas.toDataURL('image/png');
 
   const form = document.getElementById('annahmeForm');
   const formData = new FormData(form);
-  const vorname = formData.get('vorname') || '';
-  const nachname = formData.get('nachname') || '';
+  const vorname = (formData.get('vorname') || '').trim();
+  const nachname = (formData.get('nachname') || '').trim();
   const kundenname = `${vorname} ${nachname}`.trim() || 'Kunde';
   const firma = (formData.get('firma') || '').trim();
   const datum = formData.get('datum') || new Date().toISOString().slice(0, 10);
   const filename = `Angebotsannahmeprotokoll_${kundenname.replace(/\s+/g, '_')}_${datum.replace(/-/g, '')}.pdf`;
   const doc = new jsPDF();
+
+  const page = { w: 210, h: 297, margin: 14 };
+  const colors = {
+    green: [83, 111, 78],
+    dark: [31, 41, 55],
+    medium: [75, 85, 99],
+    light: [245, 247, 245],
+    line: [210, 216, 210],
+    text: [17, 24, 39],
+    muted: [100, 116, 139]
+  };
 
   const files = document.getElementById('bilderUpload').files;
   const imgPromises = [...files].map(file => {
@@ -336,51 +347,175 @@ function generatePDF(showPreview = false) {
     });
   });
 
+  const valueOrDash = (value) => {
+    const text = (value || '').toString().trim();
+    return text || '-';
+  };
+
+  const formatDatum = (isoDate) => {
+    if (!isoDate || !isoDate.includes('-')) return isoDate || '';
+    const [yyyy, mm, dd] = isoDate.split('-');
+    return `${dd}.${mm}.${yyyy}`;
+  };
+
+  const imageFormatFromDataUrl = (dataUrl) => {
+    if ((dataUrl || '').startsWith('data:image/png')) return 'PNG';
+    return 'JPEG';
+  };
+
   const buildPage = async (exemplarTyp = '') => {
-    let y = 10;
+    let y = 18;
     const startPage = doc.getNumberOfPages();
 
     const addHeader = () => {
-      doc.addImage(logoBase64, 'PNG', 160, y, 40, 45); y += 5;
-      doc.setFontSize(14);
-      doc.text('Angebotsannahmeprotokoll – PS Oldtimerservice', 10, y); y += 8;
-      doc.setFontSize(11);
+      // Dezente Kopfzeile mit Markenfarbe
+      doc.setFillColor(...colors.green);
+      doc.rect(0, 0, page.w, 8, 'F');
+
+      try {
+        doc.addImage(logoBase64, 'PNG', 158, 14, 34, 34);
+      } catch (e) {
+        // Falls ein Browser das Logoformat nicht akzeptiert, wird das PDF trotzdem erstellt.
+      }
+
+      doc.setTextColor(...colors.text);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(18);
+      doc.text('Angebotsannahmeprotokoll', page.margin, y);
+      y += 8;
+
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...colors.medium);
+      doc.text('PS Oldtimerservice · Restauration & Karosserie', page.margin, y);
+      y += 7;
+
       if (exemplarTyp) {
+        doc.setFillColor(...colors.light);
+        doc.setDrawColor(...colors.line);
+        doc.roundedRect(page.margin, y - 4, 58, 8, 2, 2, 'FD');
         doc.setFont(undefined, 'bold');
-        doc.text(`Exemplar für die ${exemplarTyp}`, 10, y); y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.green);
+        doc.text(`Exemplar: ${exemplarTyp}`, page.margin + 3, y + 1.5);
         doc.setFont(undefined, 'normal');
       }
-      doc.setFontSize(9);
-      doc.text('PS Oldtimerservice', 10, y); y += 5;
-      doc.text('Im Steingerüst 21/3, 76437 Rastatt', 10, y); y += 5;
-      doc.text('Tel: 0176 64795271 – www.ps-oldtimerservice.de', 10, y); y += 10;
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(...colors.medium);
+      doc.text('Im Steingerüst 21/3 · 76437 Rastatt', 105, 22, { align: 'right' });
+      doc.text('Tel: 0176 64795271', 105, 27, { align: 'right' });
+      doc.text('www.ps-oldtimerservice.de', 105, 32, { align: 'right' });
+
+      y = 52;
+      doc.setDrawColor(...colors.line);
+      doc.line(page.margin, y, page.w - page.margin, y);
+      y += 8;
+    };
+
+    const addFooter = (pageNumber, totalPages) => {
+      doc.setDrawColor(...colors.line);
+      doc.line(page.margin, 282, page.w - page.margin, 282);
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...colors.muted);
+      doc.text('PS Oldtimerservice · Angebotsannahmeprotokoll', page.margin, 288);
+      doc.text(`Seite ${pageNumber} von ${totalPages}`, page.w - page.margin, 288, { align: 'right' });
     };
 
     const newPage = () => {
       doc.addPage();
-      y = 10;
+      y = 18;
       addHeader();
+    };
+
+    const ensureSpace = (neededHeight) => {
+      if (y + neededHeight > 274) newPage();
+    };
+
+    const sectionTitle = (title) => {
+      ensureSpace(16);
+      y += 3;
+      doc.setFillColor(...colors.green);
+      doc.roundedRect(page.margin, y, page.w - page.margin * 2, 9, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(11);
+      doc.text(title, page.margin + 4, y + 6);
+      y += 13;
+    };
+
+    const keyValueTable = (title, items) => {
+      const cleanItems = items
+        .map(([label, value]) => [label, (value || '').toString().trim()])
+        .filter(([, value]) => value);
+      if (!cleanItems.length) return;
+
+      sectionTitle(title);
+      const rowHeight = 8;
+      const labelW = 38;
+      const colW = (page.w - page.margin * 2 - 6) / 2;
+
+      for (let i = 0; i < cleanItems.length; i += 2) {
+        ensureSpace(rowHeight + 2);
+        const rowItems = cleanItems.slice(i, i + 2);
+        rowItems.forEach(([label, value], colIndex) => {
+          const x = page.margin + colIndex * (colW + 6);
+          doc.setFillColor(...colors.light);
+          doc.setDrawColor(...colors.line);
+          doc.roundedRect(x, y, colW, rowHeight, 1.5, 1.5, 'FD');
+
+          doc.setFontSize(8.5);
+          doc.setTextColor(...colors.muted);
+          doc.setFont(undefined, 'bold');
+          doc.text(`${label}:`, x + 3, y + 5.3);
+
+          doc.setTextColor(...colors.text);
+          doc.setFont(undefined, 'normal');
+          const maxTextW = colW - labelW - 6;
+          const wrapped = doc.splitTextToSize(value, maxTextW);
+          doc.text(wrapped[0] || '-', x + labelW, y + 5.3);
+        });
+        y += rowHeight + 3;
+      }
+      y += 2;
+    };
+
+    const textBox = (title, text) => {
+      sectionTitle(title);
+      const wrapped = doc.splitTextToSize(valueOrDash(text), page.w - page.margin * 2 - 8);
+      const boxHeight = Math.max(18, wrapped.length * 5 + 10);
+      ensureSpace(boxHeight);
+      doc.setFillColor(...colors.light);
+      doc.setDrawColor(...colors.line);
+      doc.roundedRect(page.margin, y, page.w - page.margin * 2, boxHeight, 2, 2, 'FD');
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...colors.text);
+      doc.text(wrapped, page.margin + 4, y + 7);
+      y += boxHeight + 4;
+    };
+
+    const bulletListBox = (title, lines) => {
+      const cleanLines = lines.map(v => (v || '').toString().trim()).filter(Boolean);
+      if (!cleanLines.length) return;
+      sectionTitle(title);
+      const wrappedLines = cleanLines.flatMap(line => doc.splitTextToSize(`• ${line}`, page.w - page.margin * 2 - 10));
+      const boxHeight = Math.max(16, wrappedLines.length * 5 + 9);
+      ensureSpace(boxHeight);
+      doc.setFillColor(...colors.light);
+      doc.setDrawColor(...colors.line);
+      doc.roundedRect(page.margin, y, page.w - page.margin * 2, boxHeight, 2, 2, 'FD');
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...colors.text);
+      doc.text(wrappedLines, page.margin + 4, y + 7);
+      y += boxHeight + 4;
     };
 
     addHeader();
 
-    const block = (title, items) => {
-      y += 10; // Abstand vor jedem Block
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text(title, 10, y); y += 7;
-      doc.setFont(undefined, 'normal');
-      items.forEach(([label, value]) => {
-        if (value) {
-          if (y > 270) { newPage(); }
-          doc.setFontSize(10);
-          doc.text(`${label}: ${value}`, 10, y);
-          y += 6;
-        }
-      });
-    };
-
-    block('Kundendaten', [
+    keyValueTable('Kundendaten', [
       ['Vorname', vorname],
       ['Nachname', nachname],
       ['Firma', firma],
@@ -388,10 +523,10 @@ function generatePDF(showPreview = false) {
       ['PLZ / Ort', formData.get('plz_ort')],
       ['Telefon', formData.get('telefon')],
       ['E-Mail', formData.get('email')],
-      ['Datum', datum]
+      ['Datum', formatDatum(datum)]
     ]);
 
-    block('Fahrzeugdaten', [
+    keyValueTable('Fahrzeugdaten', [
       ['Marke', formData.get('fahrzeug_marke')],
       ['Modell', formData.get('fahrzeug_modell')],
       ['Baujahr', formData.get('fahrzeug_baujahr')],
@@ -400,91 +535,71 @@ function generatePDF(showPreview = false) {
       ['Fahrzeugtyp', formData.get('fahrzeug_typ')]
     ]);
 
-    const leistungen = formData.getAll('leistungen');
-    const modellAuswahl = formData.get('modell_auswahl');
+    const leistungen = formData.getAll('leistungen').filter(Boolean);
+    const modellAuswahl = (formData.get('modell_auswahl') || '').trim();
     const karosserieteile = formData.getAll('karosserieteile').filter(Boolean);
-    if (leistungen.length > 0 || modellAuswahl || karosserieteile.length > 0) {
-      y += 10;
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('Leistungsübersicht', 10, y); y += 7;
-      doc.setFont(undefined, 'normal');
-      leistungen.forEach(item => {
-        if (y > 270) { newPage(); }
-        doc.setFontSize(10);
-        doc.text(`• ${item}`, 15, y); y += 5;
-      });
-      if (modellAuswahl) {
-        if (y > 270) { newPage(); }
-        doc.setFontSize(10);
-        doc.text(`Modell: ${modellAuswahl}`, 10, y); y += 6;
-      }
-      if (karosserieteile.length > 0) {
-        if (y > 270) { newPage(); }
-        doc.setFontSize(10);
-        const karosserieteileText = doc.splitTextToSize(`Karosserieteile: ${karosserieteile.join(', ')}`, 180);
-        doc.text(karosserieteileText, 10, y);
-        y += karosserieteileText.length * 6;
-      }
-    }
+    const leistungsZeilen = [];
+    if (leistungen.length > 0) leistungsZeilen.push(`Leistungen: ${leistungen.join(', ')}`);
+    if (modellAuswahl) leistungsZeilen.push(`Modell: ${modellAuswahl}`);
+    if (karosserieteile.length > 0) leistungsZeilen.push(`Defekte Karosserieteile: ${karosserieteile.join(', ')}`);
+    bulletListBox('Leistungsübersicht', leistungsZeilen);
 
-    y += 10;
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Zusätzliche Hinweise', 10, y); y += 6;
-    doc.setFont(undefined, 'normal');
-    const hinweise = formData.get('hinweise') || '-';
-    const hinweisText = doc.splitTextToSize(hinweise, 180);
-    if (y + hinweisText.length * 6 > 280) { newPage(); }
-    doc.setFontSize(10);
-    doc.text(hinweisText, 10, y);
-    y += hinweisText.length * 6 + 10;
-
+    textBox('Zusätzliche Hinweise oder Wünsche', formData.get('hinweise'));
 
     if (imgPromises.length > 0) {
       const images = await Promise.all(imgPromises);
-      doc.setFontSize(12);
-      doc.text('Bilder:', 10, y); y += 6;
+      sectionTitle('Bilddokumentation');
       for (const img of images) {
-        if (y + 45 > 280) { newPage(); }
-        doc.addImage(img.dataUrl, 'JPEG', 10, y, 50, 38);
-        doc.setFontSize(8);
-        doc.text(img.name, 65, y + 5);
-        y += 45;
+        ensureSpace(50);
+        doc.setFillColor(...colors.light);
+        doc.setDrawColor(...colors.line);
+        doc.roundedRect(page.margin, y, page.w - page.margin * 2, 46, 2, 2, 'FD');
+        try {
+          doc.addImage(img.dataUrl, imageFormatFromDataUrl(img.dataUrl), page.margin + 4, y + 4, 52, 38);
+        } catch (e) {
+          doc.setFontSize(9);
+          doc.setTextColor(...colors.muted);
+          doc.text('Bild konnte nicht eingebettet werden.', page.margin + 4, y + 22);
+        }
+        doc.setFontSize(8.5);
+        doc.setTextColor(...colors.muted);
+        doc.text(img.name, page.margin + 62, y + 9);
+        y += 50;
       }
     }
 
-    const rechtshinweis = 'Hinweis: Das vorliegende Angebotsannahmeprotokoll stellt keine rechtsverbindliche Auftragserteilung dar, sondern dient ausschließlich der strukturierten Vorbesprechung der gewünschten Leistungen. Auf Grundlage dieser Vorbesprechung wird PS Oldtimerservice ein individuelles, unverbindliches Angebot erstellen und dem Kunden gesondert zukommen lassen. Erst mit Annahme dieses Angebots durch den Kunden kommt ein rechtswirksames Vertragsverhältnis zustande. Für die Erstellung des schriftlichen Angebots wird eine Pauschale i. H. v. 178,50 € berechnet, welche bei der Auftragserteilung vollständig verrechnet wird. Änderungen können bei Übergabe des Fahrzeugs besprochen werden.';
-    const wrappedText = doc.splitTextToSize(rechtshinweis, 180);
-    if (y + wrappedText.length * 5 > 280) { newPage(); }
-    doc.setFontSize(10);
-    doc.setTextColor(150);
-    doc.text(wrappedText, 10, y);
-    y += wrappedText.length * 5 + 10;
+    const rechtshinweis = 'Das vorliegende Angebotsannahmeprotokoll stellt keine rechtsverbindliche Auftragserteilung dar, sondern dient ausschließlich der strukturierten Vorbesprechung der gewünschten Leistungen. Auf Grundlage dieser Vorbesprechung wird PS Oldtimerservice ein individuelles, unverbindliches Angebot erstellen und dem Kunden gesondert zukommen lassen. Erst mit Annahme dieses Angebots durch den Kunden kommt ein rechtswirksames Vertragsverhältnis zustande. Für die Erstellung des schriftlichen Angebots wird eine Pauschale i. H. v. 178,50 € berechnet, welche bei der Auftragserteilung vollständig verrechnet wird. Änderungen können bei Übergabe des Fahrzeugs besprochen werden.';
+    textBox('Rechtlicher Hinweis', rechtshinweis);
 
-    doc.setTextColor(0);
+    // Unterschriften
+    ensureSpace(42);
+    sectionTitle('Unterschriften');
+    ensureSpace(34);
+    const sigY = y + 23;
 
-    // Unterschriften in PDF einbetten
-    const sigY = y;
-    doc.text('Kunde', 20, sigY + 5);
-    doc.text('Werkstatt', 120, sigY + 5);
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.muted);
+    doc.text('Kunde', page.margin + 6, y + 5);
+    doc.text('Werkstatt', page.margin + 106, y + 5);
 
-    // Signaturbilder oberhalb der Linien
-    doc.addImage(signKundeData, 'PNG', 20, sigY - 22, 70, 20);
-    doc.addImage(signWerkstattData, 'PNG', 120, sigY - 22, 70, 20);
+    doc.addImage(signKundeData, 'PNG', page.margin + 6, y + 7, 70, 18);
+    doc.addImage(signWerkstattData, 'PNG', page.margin + 106, y + 7, 70, 18);
 
-    // Linien unter den Signaturen
-    doc.line(20, sigY, 90, sigY);
-    doc.line(120, sigY, 190, sigY);
+    doc.setDrawColor(...colors.dark);
+    doc.line(page.margin + 6, sigY, page.margin + 84, sigY);
+    doc.line(page.margin + 106, sigY, page.margin + 184, sigY);
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.muted);
+    doc.text(`Ort/Datum: ${formatDatum(datum)}`, page.margin + 6, sigY + 6);
+    doc.text(`Ort/Datum: ${formatDatum(datum)}`, page.margin + 106, sigY + 6);
+    y = sigY + 12;
 
-    // Lokale Seitenzahlen (pro Exemplar)
+    // Lokale Seitenzahlen pro Exemplar
     const endPage = doc.getNumberOfPages();
     let localPage = 1;
     for (let i = startPage; i <= endPage; i++) {
       doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setTextColor(100);
-      doc.text(`Seite ${localPage} von ${endPage - startPage + 1}`, 170, 290);
+      addFooter(localPage, endPage - startPage + 1);
       localPage++;
     }
   };
