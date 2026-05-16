@@ -590,8 +590,8 @@ function generatePDF(showPreview = false) {
     doc.line(page.margin + 106, sigY, page.margin + 184, sigY);
     doc.setFontSize(8);
     doc.setTextColor(...colors.muted);
-    doc.text(`Ort/Datum: ${formatDatum(datum)}`, page.margin + 6, sigY + 6);
-    doc.text(`Ort/Datum: ${formatDatum(datum)}`, page.margin + 106, sigY + 6);
+    doc.text(`Ort/Datum: Rastatt, ${formatDatum(datum)}`, page.margin + 6, sigY + 6);
+    doc.text(`Ort/Datum: RAstatt, ${formatDatum(datum)}`, page.margin + 106, sigY + 6);
     y = sigY + 12;
 
     // Lokale Seitenzahlen pro Exemplar
